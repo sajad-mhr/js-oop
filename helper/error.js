@@ -1,3 +1,4 @@
+
 class error extends Error {
     static statusCode;
 

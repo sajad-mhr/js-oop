@@ -11,7 +11,6 @@ class Router {
         this.res = res;
     }
 
-
     get(path, method, handler) {
         this.routes.push({
             path: path,

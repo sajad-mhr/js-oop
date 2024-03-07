@@ -1,7 +1,7 @@
-const error = require("../helper/error");
-const dataBase = require('../Model/DBModel')
+const userModel = require('../Model/userModel');
+const getBody = require("../utilities/getBody");
+const response = require('../helper/response')
 
-let db = new dataBase()
 
 class UserController {
     req;
@@ -13,64 +13,57 @@ class UserController {
     }
 
     async getUser(req, res) {
-        let data = await db.get(0,2);
-        res.writeHead(200, {"Content-Type": "application/json"});
-        res.write(JSON.stringify(data));
-        res.end();
+        try {
+            let id = 1
+            let result = await userModel.getUser(id);
+            let exists = await userModel.userExists(id);
+            if (!exists) {
+                response(res, 404, "یافت نشد")
+                return;
+            }
+            response(res, 200, result);
+        } catch (e) {
+            console.log(e)
+        }
     }
 
-    addUser(req, res) {
-        let data = "";
-        req.on("data", (chunk) => {
-            data += chunk;
-        });
-        req.on("end", () => {
-            try {
-                let parsedData = JSON.parse(data)
-                if (!parsedData.id) {
-                    throw new error('id required', 400);
-                }
-                if (!parsedData.name) {
-                    throw new error('name required', 400);
-                }
-                if (!parsedData.age) {
-                    throw new error('age required', 400);
-                }
-                db.insert(0, parsedData);
-                res.writeHead(200, {"Content-Type": "application/json"});
-                res.write(data);
-                res.end();
-            } catch (e) {
-                res.writeHead(e.statusCode);
-                res.write(e.message);
-                res.end();
+    async addUser(req, res) {
+        const data = await getBody(req);
+        try {
+            let exists = await userModel.userExists(data.id);
+            if (exists) {
+                response(res, 409, "user already exists")
+                return;
             }
-        })
+
+            await userModel.insertUser(data.id, JSON.stringify(data));
+            response(res, 200, "user added")
+        } catch (e) {
+            response(res, 500, "error")
+        }
+
     }
-    editUser(req, res) {
-        let data = "";
-        req.on("data", (chunk) => {
-            data += chunk;
-        });
-        req.on("end", () => {
-            try {
-                let parsedData = JSON.parse(data)
-                if (!parsedData.name) {
-                    throw new error('name required', 400);
-                }
-                if (!parsedData.age) {
-                    throw new error('age required', 400);
-                }
-                db.update(0,1, parsedData);
-                res.writeHead(200, {"Content-Type": "application/json"});
-                res.write(data);
-                res.end();
-            } catch (e) {
-                res.writeHead(e.statusCode);
-                res.write(e.message);
-                res.end();
+
+    async editUser(req, res) {
+        const data = await getBody(req);
+        let id = 2;
+        let obj = {
+            id: id,
+            name: data.name,
+            age: data.age
+        }
+        try {
+            let exists = await userModel.userExists(id);
+            if (!exists) {
+                response(res, 409, "user not found")
+                return;
             }
-        })
+            await userModel.editUser(id, JSON.stringify(obj));
+            response(res, 200, "user edit")
+        } catch (e) {
+            response(res, 500, "error")
+        }
+
     }
 }
 
